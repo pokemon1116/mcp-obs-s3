@@ -1,0 +1,14 @@
+{
+  "name": "mcp-obs-s3",
+  "version": "1.0.0",
+  "description": "MCP Server for Huawei Cloud OBS (S3-compatible) file upload/download",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "esdk-obs-nodejs": "^3.26.2"
+  }
+}
