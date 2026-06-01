@@ -9,6 +9,7 @@ export interface ObsClientConfig {
   is_secure?: boolean;
   path_style?: boolean;
   signature?: string;
+  is_signature_negotiation?: boolean;
   region?: string;
   port?: number;
   max_retry_count?: number;

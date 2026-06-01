@@ -61,6 +61,9 @@ function getObsClient(): ObsClientInstance {
     access_key_id: ak,
     secret_access_key: sk,
     server: endpoint,
+    path_style: true,
+    signature: "v2",
+    is_signature_negotiation: true,
   });
 
   return _obs;
@@ -329,7 +332,7 @@ async function startHttpServer(port: number): Promise<void> {
 
   const mcpServer = new McpServer({
     name: "obs-s3",
-    version: "1.1.0",
+    version: "1.2.0",
   });
   registerTools(mcpServer);
   await mcpServer.connect(transport);
@@ -372,7 +375,7 @@ async function startStdioServer(): Promise<void> {
 
   const mcpServer = new McpServer({
     name: "obs-s3",
-    version: "1.1.0",
+    version: "1.2.0",
   });
   registerTools(mcpServer);
   await mcpServer.connect(transport);
