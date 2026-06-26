@@ -36,7 +36,7 @@ GitHub → **Settings → Branches → Branch protection rules → Add rule**, b
 2. **Require status checks to pass before merging**
    - Require branches to be up to date before merging: ✅
    - Status checks: `ci / build`
-   - _(Optional)_ `AI Code Review (Codex) / codex-review` — only if you want AI review to be a hard gate
+   - _(Optional)_ `AI Code Review (Zhipu GLM) / glm-review` — only if you want AI review to be a hard gate
 3. **Require linear history**: ✅
 4. **Do not allow force pushes**, **do not allow deletions**.
 5. **Do not enable "Restrict who can push"** — it requires a private repo or paid plan. The
@@ -64,6 +64,7 @@ gh api -X PUT repos/pokemon1116/mcp-obs-s3/branches/main/protection \
 
 ## Prerequisites
 
-- **AI review** needs `CODEX_OPENAI_API_KEY` in
-  **Settings → Secrets and variables → Actions** (an OpenAI API key with Codex access).
-  Without it, the `AI Code Review (Codex)` workflow will skip; `ci / build` still gates merges.
+- **AI review** needs `ZHIPUAI_API_KEY` in
+  **Settings → Secrets and variables → Actions** (a Zhipu API key from open.bigmodel.cn).
+  Optionally set `ZHIPU_MODEL` (default `glm-4.6`) under **Settings → Secrets and variables → Variables**.
+  Without the key, the `AI Code Review (Zhipu GLM)` workflow will skip; `ci / build` still gates merges.

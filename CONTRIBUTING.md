@@ -31,7 +31,7 @@ the [branch protection rules](docs/branch-protection.md).
 ## What happens on a pull request
 
 - **CI** (`ci / build`) runs `npm ci` + `tsc` on every PR and on `main`. It must pass.
-- **AI Code Review (Codex)** runs automatically and posts a review comment. It is advisory —
+- **AI Code Review (Zhipu GLM)** runs automatically and posts a review comment. It is advisory —
   it does not block the merge unless you add it as a required status check.
 - A **Code Owner** approval is required before merging (see `CODEOWNERS`).
 
