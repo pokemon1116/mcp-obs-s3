@@ -1,0 +1,30 @@
+# CODEOWNERS — 维护者治理（参考 openai/codex）
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# 规则: 越靠后的路径模式优先级越高(后匹配覆盖前匹配)。
+#       因此兜底规则 * 放在最前, 具体路径放在后面。
+# 配合分支保护(require_code_owner_reviews)后:
+#   命中路径的 PR 必须由对应 owner 审批才能合入。
+#
+# 角色:
+#   maintainer = @trublion1116   (最终合入决策权)
+#   committer  = @trublion1116, @Q-Bug4
+# 由于 @trublion1116 独占 /src/, 任何源码改动都必须经 maintainer 审批 ——
+# 这正是 committer 与 maintainer 区分的强制点。
+
+# ── 默认兜底(以上未命中的所有文件 → 全体 committer) ─────────────────────
+*                                           @trublion1116 @Q-Bug4
+
+# ── 源代码(仅 maintainer) ───────────────────────────────────────────────
+/src/                                       @trublion1116
+
+# ── 治理 / CI / 合入机制(改动需双人知情) ─────────────────────────────────
+/.github/CODEOWNERS                         @trublion1116 @Q-Bug4
+/.github/settings.yml                       @trublion1116 @Q-Bug4
+/.github/workflows/                         @trublion1116 @Q-Bug4
+/.github/                                   @trublion1116 @Q-Bug4
+
+# ── 文档 ────────────────────────────────────────────────────────────────
+/README.md                                  @trublion1116 @Q-Bug4
+/CONTRIBUTING.md                            @trublion1116 @Q-Bug4
+/docs/                                      @trublion1116 @Q-Bug4

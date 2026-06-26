@@ -1,0 +1,59 @@
+name: AI Code Review (Codex)
+
+# PR 自动拉起 Codex 做 AI 代码审查。
+# 前置: 在仓库 Settings → Secrets and variables → Actions 添加
+#       CODEX_OPENAI_API_KEY (OpenAI API key, 需含 Codex 访问权限)。
+# 原理与 openai/codex 一致: openai/codex-action@v1.7
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  codex-review:
+    # 仅本仓库触发(fork 没有 API key, 会浪费 Actions 额度); 跳过 draft PR
+    if: github.repository == 'pokemon1116/mcp-obs-s3' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    environment: ai-review # 可在仓库 Settings → Environments 给该环境加保护/审批
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 完整历史, 便于 codex 查看 base..head 差异
+
+      - name: Run Codex review
+        uses: openai/codex-action@5c3f4ccdb2b8790f73d6b21751ac00e602aa0c02 # v1.7
+        with:
+          openai-api-key: ${{ secrets.CODEX_OPENAI_API_KEY }}
+          sandbox: read-only # 只读, 不允许 codex 改动仓库
+          safety-strategy: drop-sudo
+          prompt: |
+            你是一名资深 TypeScript / Node.js 代码审查员，正在审查仓库
+            pokemon1116/mcp-obs-s3（MCP Server for Huawei Cloud OBS，S3 兼容）的 Pull Request。
+
+            PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            {CODEX_ACTION_GITHUB_EVENT_PATH} 指向触发本次工作流的 GitHub event JSON，
+            内含定义本 PR 的 base 与 head ref，两者在本地均可访问。
+            请据此查看本次变更差异后进行审查。
+
+            审查重点（本项目特有）：
+            1. 安全性：严禁硬编码 OBS 的 AK/SK 或任何凭证；日志与报错信息不得泄露密钥。
+            2. MCP 契约：tools 的 zod schema 与输入校验是否严谨；返回结构是否符合 MCP 协议。
+            3. 正确性：OBS SDK 调用（上传/下载/列表/签名 URL）、错误处理、异步逻辑。
+            4. 健壮性：缺失环境变量、SDK/网络异常、边界条件（空桶 / 大文件 / key 前缀）。
+            5. 可维护性：类型定义、命名、明显重复或可简化处。
+
+            输出格式（简洁 Markdown）：
+            - **变更摘要**：1-2 句话说明本 PR 做了什么。
+            - **审查结论**：按 🔴必须修改 / 🟡建议优化 / 🟢看起来不错 分级，
+              每条给出 `文件:行号` 与理由；只针对本次 diff，不要泛泛而谈。
+            - 语气友好、就事论事。

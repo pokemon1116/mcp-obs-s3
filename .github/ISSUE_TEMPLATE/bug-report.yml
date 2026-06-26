@@ -1,0 +1,81 @@
+name: 🐛 Bug Report
+description: Report a defect or unexpected behavior in the MCP OBS Server
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting, please search for existing issues. If you find one, add a 👍 to it
+        instead of creating a duplicate.
+        ⚠️ Do **not** paste AK / SK / tokens or any other credentials. Redact sensitive data first.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version from package.json (e.g. 1.2.0)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport mode
+      options:
+        - stdio
+        - http (Streamable HTTP)
+    validations:
+      required: true
+
+  - type: input
+    id: tool
+    attributes:
+      label: Affected tool
+      description: Which tool is affected (s3_upload / s3_download / s3_list / s3_generate_url / other)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the error. Paste the full error message (redact sensitive info first).
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How do you reproduce it step by step? Include the tool name and arguments you used.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      value: |
+        - Node version:
+        - OBS endpoint:
+        - OBS bucket:
+        - Deployment (local / Docker):
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant server / client logs (make sure to redact secrets).
+      render: shell
