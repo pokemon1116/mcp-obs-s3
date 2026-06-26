@@ -1,0 +1,42 @@
+# probot/settings 仓库配置文件
+# https://github.com/repository-settings/app
+#
+# 说明: GitHub 的「分支保护」无法通过原生 .github 文件生效, 它是仓库设置数据。
+# 本文件是折中方案 —— 安装 probot-settings App 后, 提交本文件会自动应用为仓库设置;
+# 不安装则本文件只是配置声明, 不影响仓库, 请按 docs/branch-protection.md 手动配置。
+
+repository:
+  name: mcp-obs-s3
+  description: MCP Server for Huawei Cloud OBS (S3-compatible) file upload/download
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_discussions: false
+  default_branch: main
+  # 统一用 squash 合并, 保持线性历史
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+  delete_branch_on_merge: true
+
+branches:
+  - name: main
+    protection:
+      # 必过的 status check (CI)。
+      # ⚠️ context 名必须与 Actions 实际上报的 check 名一致:
+      #    格式为 "<workflow name> / <job name>", 即 "ci / build"。
+      #    首次 CI 跑完后请到 Settings → Branches 核对并按需调整。
+      required_status_checks:
+        strict: true # 要求分支与 base 保持最新(合并前需 rebase/merge base)
+        contexts:
+          - ci / build
+      enforce_admins: false
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true # 新提交后自动清空旧审批
+        require_code_owner_reviews: true # 强制按 CODEOWNERS 要求对应 owner 审批
+        # require_last_push_approval: true # 可选: 最近一次 push 后必须有人重新审批
+      restrictions: null # 公开仓库免费版不支持 push 限制, 留空
+      required_linear_history: true
+      allow_force_pushes: false
+      allow_deletions: false
