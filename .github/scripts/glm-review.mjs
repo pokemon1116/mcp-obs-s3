@@ -1,12 +1,16 @@
 // .github/scripts/glm-review.mjs
 // 用智谱 GLM 对 PR diff 做代码审查, 结果写入第一个位置参数指定的文件。
-// 依赖 Node 18+ 内置 fetch。环境变量:
+// 用 node:https 直连 (跨洋连接给足超时 + 自动重试), 无外部依赖。
+// 环境变量:
 //   ZHIPUAI_API_KEY  智谱 API Key (必填)
 //   ZHIPU_BASE_URL   默认 https://open.bigmodel.cn/api/paas/v4
 //   ZHIPU_MODEL      默认 glm-4.6
-//   PR_NUMBER / PR_TITLE / PR_BODY  PR 元信息
+//   PR_NUMBER        PR 编号 (可选)
+//   META_FILE        PR 元数据 JSON ({title, body}) 路径 (可选, 优先于下面两个)
+//   PR_TITLE/PR_BODY PR 元信息 (可选回退)
 //   DIFF_FILE        diff 文件路径 (必填)
 
+import https from "node:https";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const apiKey = process.env.ZHIPUAI_API_KEY;
@@ -35,9 +39,20 @@ if (!diff.trim()) {
   process.exit(0);
 }
 
+// 优先从 metadata json 读取 PR 标题/描述(支持 issue_comment 触发, 避免多行 env 问题),
+// 回退到 PR_TITLE / PR_BODY 环境变量。
+let prTitle = process.env.PR_TITLE || "";
+let prBody = (process.env.PR_BODY || "").slice(0, 2000);
+if (process.env.META_FILE) {
+  try {
+    const meta = JSON.parse(readFileSync(process.env.META_FILE, "utf8"));
+    prTitle = prTitle || meta.title || "";
+    prBody = prBody || (meta.body || "").slice(0, 2000);
+  } catch (e) {
+    console.error("读取 META_FILE 失败:", e.message);
+  }
+}
 const prNumber = process.env.PR_NUMBER || "(unknown)";
-const prTitle = process.env.PR_TITLE || "";
-const prBody = (process.env.PR_BODY || "").slice(0, 2000);
 
 const system =
   "你是一名资深 TypeScript / Node.js 代码审查员, 正在审查仓库 " +
@@ -65,37 +80,86 @@ ${diff}
 - **审查结论**: 按 🔴必须修改 / 🟡建议优化 / 🟢看起来不错 分级, 每条给出 文件:行号 与理由; 没有问题的等级可省略。
 - 只针对本次 diff, 语气友好。`;
 
-let res;
-try {
-  res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      temperature: 0.2,
-      max_tokens: 1500,
-    }),
+const payload = {
+  model,
+  messages: [
+    { role: "system", content: system },
+    { role: "user", content: user },
+  ],
+  temperature: 0.2,
+  max_tokens: 1500,
+};
+
+// node:https 直连, 带整体超时; 连接握手不受 undici 默认 10s 限制。
+function postChat(timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(baseUrl + "/chat/completions");
+    const body = JSON.stringify(payload);
+    const req = https.request(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: url.pathname + url.search,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (c) => (data += c));
+        res.on("end", () => resolve({ status: res.statusCode, data }));
+      }
+    );
+    const timer = setTimeout(() => req.destroy(new Error(`请求超过 ${timeoutMs}ms 超时`)), timeoutMs);
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    req.on("close", () => clearTimeout(timer));
+    req.write(body);
+    req.end();
   });
-} catch (err) {
-  console.error("请求智谱接口失败:", err.message);
+}
+
+const MAX_ATTEMPTS = 4;
+let result;
+for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  try {
+    result = await postChat(180000);
+    break;
+  } catch (err) {
+    console.error(`第 ${attempt}/${MAX_ATTEMPTS} 次请求失败: ${err.message}`);
+    if (attempt === MAX_ATTEMPTS) {
+      console.error("已达最大重试次数, 放弃。");
+      console.error(
+        "排查: 若持续为超时/ECONNRESET, 多为 GitHub runner(美国) 到 open.bigmodel.cn 跨洋连接不稳;\n" +
+          "可重跑 workflow; 若长期如此需考虑自建 runner 或代理。"
+      );
+      process.exit(1);
+    }
+    await new Promise((r) => setTimeout(r, attempt * 4000));
+  }
+}
+
+if (result.status >= 400) {
+  console.error(`智谱接口返回 ${result.status}: ${result.data.slice(0, 500)}`);
   process.exit(1);
 }
 
-if (!res.ok) {
-  const text = await res.text();
-  console.error(`智谱接口返回 ${res.status}: ${text}`);
+let data;
+try {
+  data = JSON.parse(result.data);
+} catch {
+  console.error("无法解析响应 JSON:", result.data.slice(0, 500));
   process.exit(1);
 }
 
-const data = await res.json();
 const content = data?.choices?.[0]?.message?.content?.trim() || "";
 if (!content) {
   console.error("GLM 未返回内容:", JSON.stringify(data).slice(0, 500));

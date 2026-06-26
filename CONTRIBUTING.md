@@ -33,6 +33,8 @@ the [branch protection rules](docs/branch-protection.md).
 - **CI** (`ci / build`) runs `npm ci` + `tsc` on every PR and on `main`. It must pass.
 - **AI Code Review (Zhipu GLM)** runs automatically and posts a review comment. It is advisory —
   it does not block the merge unless you add it as a required status check.
+- Pushing new commits re-runs the review automatically. You can also comment `/glm-review`
+  (or `@zhipu`) on the PR to re-review on demand — only maintainers/committers can trigger it.
 - A **Code Owner** approval is required before merging (see `CODEOWNERS`).
 
 ## Commit style
