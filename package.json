@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "esdk-obs-nodejs": "^3.26.2",
+    "esdk-obs-nodejs": "^3.26.8",
     "zod": "^4.4.3"
   },
   "devDependencies": {
